@@ -22,6 +22,7 @@ import { createAuthCallbackController } from "./authCallback";
 import { showCursor } from "./cursorHider";
 import { getGpuSwitches } from "./gpuSwitches";
 import { isLiteModeActiveInMain } from "./liteModeMain";
+import { registerTeleprompterIpc } from "./teleprompterWindow";
 import { LITE_RENDERER_HEAP_MB } from "../src/lib/liteMode";
 import {
 	cleanupAllExportStreams,
@@ -137,6 +138,7 @@ async function logSmokeExportGpuDiagnostics() {
 
 configureGpuAccelerationSwitches();
 configureLiteModeSwitches();
+registerTeleprompterIpc();
 
 async function ensureRecordingsDir() {
 	try {

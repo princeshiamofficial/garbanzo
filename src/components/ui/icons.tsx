@@ -198,6 +198,12 @@ import { WidgetAddIcon as WidgetAddLinear } from "@solar-icons/react/linear/widg
 import { WidgetAddIcon as WidgetAddBold } from "@solar-icons/react/bold/widget-add";
 import { WindowFrameIcon as WindowFrameLinear } from "@solar-icons/react/linear/window-frame";
 import { WindowFrameIcon as WindowFrameBold } from "@solar-icons/react/bold/window-frame";
+import { SoundwaveIcon as SoundwaveLinear } from "@solar-icons/react/linear/soundwave";
+import { SoundwaveIcon as SoundwaveBold } from "@solar-icons/react/bold/soundwave";
+import { DocumentTextIcon as DocumentTextLinear } from "@solar-icons/react/linear/document-text";
+import { DocumentTextIcon as DocumentTextBold } from "@solar-icons/react/bold/document-text";
+import { FlipHorizontalIcon as FlipHorizontalLinear } from "@solar-icons/react/linear/flip-horizontal";
+import { FlipHorizontalIcon as FlipHorizontalBold } from "@solar-icons/react/bold/flip-horizontal";
 export const AlignCenterHorizontal = solar(AlignHorizontalCenterLinear, AlignHorizontalCenterBold);
 export const AlignLeft = solar(AlignLeftLinear, AlignLeftBold);
 export const AlignRight = solar(AlignRightLinear, AlignRightBold);
@@ -296,3 +302,6 @@ export const PuzzlePiece = solar(WidgetAddLinear, WidgetAddBold);
 export const TranslateIcon = solar(TranslationLinear, TranslationBold);
 // Provider logos are brands, not selectable application icons.
 export { GoogleLogo, XLogo } from "@phosphor-icons/react";
+export const SoundwaveIcon = solar(SoundwaveLinear, SoundwaveBold);
+export const DocumentTextIcon = solar(DocumentTextLinear, DocumentTextBold);
+export const FlipHorizontalIcon = solar(FlipHorizontalLinear, FlipHorizontalBold);

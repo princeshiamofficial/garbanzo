@@ -30,6 +30,7 @@ import {
 	validateRecordedVideo,
 } from "./diagnostics";
 import { emitRecordingInterrupted } from "./events";
+import { applyNoiseCancellationToMicFile } from "./noiseCancellation";
 import { getFinalMacCompanionAudioPath } from "./macCompanionAudio";
 
 export function waitForNativeCaptureStart(process: ChildProcessWithoutNullStreams) {
@@ -182,6 +183,10 @@ export async function muxNativeMacRecordingWithAudio(
 			const stat = await fs.stat(microphonePath);
 			if (stat.size > 0 && microphonePath !== finalMicPath) {
 				await moveFileWithOverwrite(microphonePath, finalMicPath);
+			}
+			if (stat.size > 0) {
+				// ANC mode: clean background noise from the mic track (no-op when off).
+				await applyNoiseCancellationToMicFile(finalMicPath);
 			}
 		} catch (err) {
 			console.error(`[mac-mux] Failed to handle mic audio:`, err);

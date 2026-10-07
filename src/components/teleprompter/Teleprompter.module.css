@@ -1,0 +1,466 @@
+/*
+ * Teleprompter. Built like studio prompting glass: a pure black stage, warm
+ * low-glare script text, and a single amber cue line that marks where to read.
+ * Text that has already scrolled past the cue sinks into shadow.
+ */
+
+@font-face {
+	font-family: "Atkinson Hyperlegible";
+	src: url("../../assets/fonts/atkinson-hyperlegible/atkinson-hyperlegible-latin-400-normal.woff2")
+		format("woff2");
+	font-weight: 400;
+	font-style: normal;
+	font-display: swap;
+}
+@font-face {
+	font-family: "Atkinson Hyperlegible";
+	src: url("../../assets/fonts/atkinson-hyperlegible/atkinson-hyperlegible-latin-700-normal.woff2")
+		format("woff2");
+	font-weight: 700;
+	font-style: normal;
+	font-display: swap;
+}
+@font-face {
+	font-family: "Noto Sans Bengali";
+	src: url("../../assets/fonts/noto-sans-bengali/noto-sans-bengali-bengali-400-normal.woff2")
+		format("woff2");
+	font-weight: 400;
+	font-style: normal;
+	font-display: swap;
+}
+@font-face {
+	font-family: "Noto Sans Bengali";
+	src: url("../../assets/fonts/noto-sans-bengali/noto-sans-bengali-bengali-600-normal.woff2")
+		format("woff2");
+	font-weight: 600 700;
+	font-style: normal;
+	font-display: swap;
+}
+
+.root {
+	--tp-stage: #000000;
+	--tp-chrome: #121317;
+	--tp-chrome-raised: #1c1e23;
+	--tp-rule: #2a2c33;
+	--tp-ink: #efeadf;
+	--tp-ink-muted: #8d8f97;
+	--tp-cue: #ffb020;
+	--tp-tally: #ff453a;
+	--tp-script-font:
+		"Atkinson Hyperlegible", "Noto Sans Bengali", "Nirmala UI", "Vrinda", system-ui, sans-serif;
+	--tp-ui-font: "DM Sans", system-ui, sans-serif;
+
+	position: fixed;
+	inset: 0;
+	display: flex;
+	flex-direction: column;
+	background: var(--tp-stage);
+	color: var(--tp-ink);
+	font-family: var(--tp-ui-font);
+	font-size: 13px;
+	overflow: hidden;
+	user-select: none;
+}
+
+/* ---- title bar (window drag handle) ---------------------------------- */
+
+.titleBar {
+	-webkit-app-region: drag;
+	display: grid;
+	grid-template-columns: 1fr auto 1fr;
+	align-items: center;
+	height: 34px;
+	padding: 0 6px 0 12px;
+	background: var(--tp-chrome);
+	border-bottom: 1px solid var(--tp-rule);
+	flex: none;
+}
+
+.status {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	color: var(--tp-ink-muted);
+}
+
+.tally {
+	width: 8px;
+	height: 8px;
+	border-radius: 50%;
+	background: var(--tp-rule);
+}
+
+.tally[data-live] {
+	background: var(--tp-tally);
+	box-shadow: 0 0 0 3px rgb(255 69 58 / 0.22);
+}
+
+.timeLeft {
+	color: var(--tp-ink-muted);
+	font-variant-numeric: tabular-nums;
+}
+
+.windowButtons {
+	-webkit-app-region: no-drag;
+	display: flex;
+	justify-content: flex-end;
+	gap: 2px;
+}
+
+/* ---- shared buttons --------------------------------------------------- */
+
+.iconButton,
+.iconToggle,
+.textButton,
+.stepButton,
+.playButton,
+.primaryButton {
+	-webkit-app-region: no-drag;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	border: 0;
+	color: var(--tp-ink);
+	background: transparent;
+	font: inherit;
+	cursor: pointer;
+}
+
+.iconButton {
+	width: 28px;
+	height: 26px;
+	border-radius: 6px;
+	color: var(--tp-ink-muted);
+}
+
+.iconButton:hover {
+	background: var(--tp-chrome-raised);
+	color: var(--tp-ink);
+}
+
+.root button:focus-visible,
+.autoStart input:focus-visible {
+	outline: 2px solid var(--tp-cue);
+	outline-offset: 2px;
+}
+
+/* ---- reading stage ---------------------------------------------------- */
+
+.stage {
+	position: relative;
+	flex: 1;
+	min-height: 0;
+	overflow: hidden;
+	cursor: default;
+}
+
+.mirrorBox {
+	position: absolute;
+	inset: 0;
+}
+
+.mirrorBox[data-mirror] {
+	transform: scaleX(-1);
+}
+
+.track {
+	position: relative;
+	padding-inline: clamp(20px, 6vw, 72px);
+	will-change: transform;
+}
+
+.paragraph {
+	margin: 0 0 0.9em;
+	max-width: 30ch;
+	margin-inline: auto;
+	font-family: var(--tp-script-font);
+	font-size: var(--tp-font-size, 44px);
+	font-weight: 700;
+	line-height: 1.32;
+	letter-spacing: 0.005em;
+	white-space: pre-line;
+	color: var(--tp-ink);
+	text-wrap: pretty;
+}
+
+/* Text that has scrolled past the cue sinks into shadow. A plain overlay is far
+   cheaper than a CSS mask on integrated GPUs. */
+.readShade {
+	position: absolute;
+	inset: 0 0 auto;
+	background: linear-gradient(to bottom, rgb(0 0 0 / 0.92), rgb(0 0 0 / 0.55));
+	pointer-events: none;
+}
+
+.cue {
+	position: absolute;
+	left: 0;
+	right: 0;
+	height: 0;
+	border-top: 2px solid var(--tp-cue);
+	opacity: 0.85;
+	pointer-events: none;
+}
+
+.cue::before {
+	content: "";
+	position: absolute;
+	left: 0;
+	top: -9px;
+	border-block: 8px solid transparent;
+	border-left: 12px solid var(--tp-cue);
+}
+
+.progressRail {
+	position: absolute;
+	top: 10px;
+	bottom: 10px;
+	right: 6px;
+	width: 3px;
+	border-radius: 2px;
+	background: var(--tp-chrome-raised);
+	pointer-events: none;
+}
+
+.progressFill {
+	height: 100%;
+	border-radius: inherit;
+	background: var(--tp-ink-muted);
+	transform-origin: top;
+}
+
+.captureWarning {
+	position: absolute;
+	left: 12px;
+	right: 12px;
+	bottom: 8px;
+	margin: 0;
+	color: var(--tp-cue);
+	font-size: 12px;
+	text-align: center;
+}
+
+/* ---- control strip ---------------------------------------------------- */
+
+/* The strip floats over the bottom of the stage so hiding it never reflows the
+   script (reading happens at the cue near the top anyway). */
+.controls {
+	position: absolute;
+	inset: auto 0 0;
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	flex-wrap: nowrap;
+	padding: 8px 10px;
+	background: var(--tp-chrome);
+	border-top: 1px solid var(--tp-rule);
+	transition:
+		opacity 180ms ease,
+		transform 180ms ease;
+}
+
+.controls[data-hidden] {
+	opacity: 0;
+	transform: translateY(100%);
+	pointer-events: none;
+}
+
+.playButton {
+	width: 38px;
+	height: 38px;
+	border-radius: 50%;
+	background: var(--tp-ink);
+	color: var(--tp-stage);
+}
+
+.playButton:hover {
+	background: #ffffff;
+}
+
+.textButton {
+	height: 32px;
+	padding: 0 10px;
+	border-radius: 8px;
+	color: var(--tp-ink);
+}
+
+.textButton:hover,
+.iconToggle:hover,
+.stepButton:hover {
+	background: var(--tp-chrome-raised);
+}
+
+.stepper {
+	display: inline-flex;
+	align-items: center;
+	height: 32px;
+	padding: 0 2px;
+	border: 1px solid var(--tp-rule);
+	border-radius: 8px;
+}
+
+.stepButton {
+	width: 28px;
+	height: 26px;
+	border-radius: 6px;
+	font-size: 16px;
+	line-height: 1;
+}
+
+.stepValue {
+	min-width: 62px;
+	text-align: center;
+	font-variant-numeric: tabular-nums;
+}
+
+.stepValue small {
+	color: var(--tp-ink-muted);
+	font-size: 11px;
+}
+
+.smallA {
+	font-size: 12px;
+	font-weight: 600;
+}
+
+.bigA {
+	font-size: 17px;
+	font-weight: 600;
+}
+
+.iconToggle {
+	width: 34px;
+	height: 32px;
+	border-radius: 8px;
+	color: var(--tp-ink-muted);
+}
+
+.iconToggle[aria-pressed="true"] {
+	color: var(--tp-cue);
+	background: rgb(255 176 32 / 0.12);
+}
+
+.autoStart {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	margin-left: auto;
+	padding: 0 6px;
+	color: var(--tp-ink-muted);
+	cursor: pointer;
+}
+
+.autoStart input {
+	accent-color: var(--tp-cue);
+	width: 14px;
+	height: 14px;
+	margin: 0;
+}
+
+/* ---- editor ----------------------------------------------------------- */
+
+.editor {
+	display: flex;
+	flex-direction: column;
+	flex: 1;
+	min-height: 0;
+}
+
+.scriptInput {
+	flex: 1;
+	min-height: 0;
+	resize: none;
+	border: 0;
+	padding: 18px clamp(16px, 5vw, 40px);
+	background: var(--tp-stage);
+	color: var(--tp-ink);
+	font-family: var(--tp-script-font);
+	font-size: 20px;
+	line-height: 1.55;
+	user-select: text;
+}
+
+/* The editor fills the window, so the caret is the focus indicator. The app's
+   global :focus-visible ring (high specificity) would draw a stray line here. */
+.scriptInput:focus,
+.scriptInput:focus-visible {
+	outline: none !important;
+	box-shadow: none;
+}
+
+.scriptInput::placeholder {
+	color: #5d5f67;
+}
+
+.editorFooter {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	padding: 8px 10px 8px 16px;
+	background: var(--tp-chrome);
+	border-top: 1px solid var(--tp-rule);
+}
+
+.meta {
+	color: var(--tp-ink-muted);
+	font-variant-numeric: tabular-nums;
+}
+
+.primaryButton {
+	height: 32px;
+	padding: 0 16px;
+	border-radius: 8px;
+	background: var(--tp-cue);
+	color: #1a1204;
+	font-weight: 600;
+}
+
+.primaryButton:hover {
+	background: #ffc04d;
+}
+
+.primaryButton:disabled {
+	background: var(--tp-chrome-raised);
+	color: var(--tp-ink-muted);
+	cursor: default;
+}
+
+/* Lite mode: no animated chrome, no glow. */
+.root[data-lite] .controls {
+	transition: none;
+}
+
+.root[data-lite] .tally[data-live] {
+	box-shadow: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.controls {
+		transition: none;
+	}
+}
+
+.compactOnly {
+	display: none;
+}
+
+@media (max-width: 600px) {
+	.controls {
+		gap: 4px;
+		padding: 6px 8px;
+	}
+
+	.autoStart span,
+	.optional {
+		display: none;
+	}
+
+	.compactOnly {
+		display: inline;
+	}
+
+	.stepValue {
+		min-width: 48px;
+	}
+}

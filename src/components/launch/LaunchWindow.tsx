@@ -8,12 +8,13 @@ import {
 	MinusIcon,
 	MonitorIcon,
 	TimerIcon,
+	DocumentTextIcon,
 	VideoCameraIcon,
 	VideoCameraSlashIcon,
 	XIcon,
 } from "@/components/ui/icons";
 import { AnimatePresence, motion } from "motion/react";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Separator } from "@/components/ui/separator";
 import { useScopedT } from "../../contexts/I18nContext";
 import { useMicrophoneDevices } from "../../hooks/useMicrophoneDevices";
@@ -51,6 +52,13 @@ export function LaunchWindow() {
 function LaunchWindowContent() {
 	const t = useScopedT("launch");
 	const { openId, requestOpen } = useLaunchPopoverCoordinator();
+	const [teleprompterOpen, setTeleprompterOpen] = useState(false);
+
+	useEffect(() => {
+		const api = window.electronAPI;
+		void api?.isTeleprompterOpen?.().then((open) => setTeleprompterOpen(Boolean(open)));
+		return api?.onTeleprompterVisibility?.((open) => setTeleprompterOpen(open));
+	}, []);
 
 	const {
 		recording,
@@ -355,6 +363,25 @@ function LaunchWindowContent() {
 					</Button>
 				}
 			/>
+
+			<Button
+				variant="ghost"
+				size="icon"
+				iconSize="lg"
+				title={teleprompterOpen ? "Close teleprompter" : "Open teleprompter"}
+				aria-pressed={teleprompterOpen}
+				className={teleprompterOpen ? "text-accent" : ""}
+				onClick={() => {
+					void window.electronAPI
+						?.toggleTeleprompter?.()
+						.then((open) => setTeleprompterOpen(Boolean(open)));
+				}}
+			>
+				<DocumentTextIcon
+					weight={teleprompterOpen ? "fill" : "regular"}
+					className="size-5"
+				/>
+			</Button>
 
 			<Button
 				type="button"

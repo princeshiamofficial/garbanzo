@@ -228,6 +228,14 @@ interface Window {
 		hudOverlayRendererReady: () => void;
 		hudOverlaySetWebcamPreviewVisible: (visible: boolean) => void;
 		getHudOverlayCaptureProtection: () => Promise<{ success: boolean; enabled: boolean }>;
+		toggleTeleprompter: () => Promise<boolean>;
+		isTeleprompterOpen: () => Promise<boolean>;
+		closeTeleprompter: () => void;
+		minimizeTeleprompter: () => void;
+		getTeleprompterRecordingState: () => Promise<boolean>;
+		getTeleprompterPlatformInfo: () => Promise<{ captureExclusionSupported: boolean }>;
+		onTeleprompterRecordingState: (callback: (recording: boolean) => void) => () => void;
+		onTeleprompterVisibility: (callback: (open: boolean) => void) => () => void;
 		getHudOverlayMousePassthroughSupported: () => Promise<{
 			success: boolean;
 			supported: boolean;

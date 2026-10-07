@@ -16,6 +16,7 @@ import {
 } from "./hudOverlayBounds";
 import { getHudOverlayTaskbarOptions } from "./hudOverlayWindowOptions";
 import { getPackagedRendererBaseUrl } from "./rendererServer";
+import { notifyTeleprompterRecordingState } from "./teleprompterWindow";
 
 const electronWindowsDir = path.dirname(fileURLToPath(import.meta.url));
 const nodeRequire = createRequire(import.meta.url);
@@ -723,6 +724,7 @@ export function reassertHudOverlayMousePassthrough(): void {
 export function setHudOverlayRecordingActive(recording: boolean): void {
 	hudCaptureStarting = false;
 	hudOverlayRecordingActive = Boolean(recording);
+	notifyTeleprompterRecordingState(hudOverlayRecordingActive);
 	notifyEditorMode();
 	hudOverlayFallbackExpanded = false;
 	applyHudOverlayBounds();

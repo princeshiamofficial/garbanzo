@@ -20,6 +20,7 @@ const UpdateToastWindow = lazy(() =>
 	})),
 );
 const EditorWindow = lazy(() => import("./components/video-editor/EditorWindow"));
+const TeleprompterWindow = lazy(() => import("./components/teleprompter/TeleprompterWindow"));
 
 export default function App() {
 	const [windowType] = useState(
@@ -58,7 +59,9 @@ export default function App() {
 		document.title =
 			windowType === "editor"
 				? t("app.editorTitle", "Recordly Editor")
-				: t("app.name", "Recordly");
+				: windowType === "teleprompter"
+					? "Teleprompter"
+					: t("app.name", "Recordly");
 	}, [windowType, t]);
 
 	let content;
@@ -77,6 +80,9 @@ export default function App() {
 			break;
 		case "editor":
 			content = <EditorWindow />;
+			break;
+		case "teleprompter":
+			content = <TeleprompterWindow />;
 			break;
 		default:
 			content = (

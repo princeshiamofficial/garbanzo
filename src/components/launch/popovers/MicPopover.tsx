@@ -1,9 +1,21 @@
-import { MicrophoneSlashIcon, SpeakerHighIcon, SpeakerXIcon } from "@/components/ui/icons";
+import {
+	MicrophoneSlashIcon,
+	SoundwaveIcon,
+	SpeakerHighIcon,
+	SpeakerXIcon,
+} from "@/components/ui/icons";
 import { useScopedT } from "@/contexts/I18nContext";
 import { DropdownItem, HudPopover, MicDeviceRow } from "./PopoverScaffold";
 import { useLaunchPopoverCoordinator } from "./LaunchPopoverCoordinator";
 import type { DeviceOption } from "./launchPopoverTypes";
-import type { ReactElement } from "react";
+import { type ReactElement, useState } from "react";
+import {
+	loadNoiseCancellationLevel,
+	NOISE_CANCELLATION_LABELS,
+	NOISE_CANCELLATION_LEVELS,
+	type NoiseCancellationLevel,
+	saveNoiseCancellationLevel,
+} from "@/lib/noiseCancellation";
 import styles from "../LaunchWindow.module.css";
 
 const POPOVER_ID = "mic";
@@ -34,6 +46,7 @@ export function MicPopover({
 	const t = useScopedT("launch");
 	const { isOpen, requestOpen, requestClose } = useLaunchPopoverCoordinator();
 	const open = isOpen(POPOVER_ID);
+	const [ancLevel, setAncLevel] = useState<NoiseCancellationLevel>(loadNoiseCancellationLevel);
 
 	return (
 		<HudPopover
@@ -95,6 +108,27 @@ export function MicPopover({
 				<div className="text-center text-xs text-[var(--launch-text-muted)] py-4">
 					{t("recording.noMicrophonesFound")}
 				</div>
+			)}
+			{microphoneEnabled && (
+				<>
+					<div className={styles.ddLabel}>Noise cancellation (ANC)</div>
+					{NOISE_CANCELLATION_LEVELS.map((level) => (
+						<DropdownItem
+							key={level}
+							icon={<SoundwaveIcon size={16} />}
+							selected={ancLevel === level}
+							onClick={() => {
+								setAncLevel(level);
+								saveNoiseCancellationLevel(level);
+							}}
+						>
+							{NOISE_CANCELLATION_LABELS[level]}
+						</DropdownItem>
+					))}
+					<div className="px-3 pb-2 text-[11px] leading-snug text-[var(--launch-text-muted)]">
+						Cleans the mic track right after you stop recording.
+					</div>
+				</>
 			)}
 		</HudPopover>
 	);

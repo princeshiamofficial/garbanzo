@@ -1,5 +1,7 @@
 import type { ChildProcessWithoutNullStreams } from "node:child_process";
 import { getMainRecordingProfile } from "../../liteModeMain";
+import { getNoiseCancellationFilters } from "../../../src/lib/noiseCancellation";
+import { getActiveNoiseCancellationLevel } from "../recording/noiseCancellation";
 import { execFile, spawn } from "node:child_process";
 import fs from "node:fs/promises";
 import path from "node:path";
@@ -1688,6 +1690,8 @@ export function registerRecordingHandlers(
 						"-af",
 						[
 							...getBrowserMicSidecarFilters(options?.browserMicrophoneProfile),
+							// ANC mode: extra noise cleanup on top of the sidecar chain.
+							...getNoiseCancellationFilters(getActiveNoiseCancellationLevel()),
 							"aresample=async=1:first_pts=0",
 						].join(","),
 						"-c:a",

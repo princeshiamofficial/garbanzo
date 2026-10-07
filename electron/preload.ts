@@ -215,6 +215,37 @@ contextBridge.exposeInMainWorld("electronAPI", {
 	getHudOverlayCaptureProtection: () => {
 		return ipcRenderer.invoke("get-hud-overlay-capture-protection");
 	},
+	toggleTeleprompter: () => {
+		return ipcRenderer.invoke("teleprompter:toggle") as Promise<boolean>;
+	},
+	isTeleprompterOpen: () => {
+		return ipcRenderer.invoke("teleprompter:is-open") as Promise<boolean>;
+	},
+	closeTeleprompter: () => {
+		ipcRenderer.send("teleprompter:close");
+	},
+	minimizeTeleprompter: () => {
+		ipcRenderer.send("teleprompter:minimize");
+	},
+	getTeleprompterRecordingState: () => {
+		return ipcRenderer.invoke("teleprompter:get-recording-state") as Promise<boolean>;
+	},
+	getTeleprompterPlatformInfo: () => {
+		return ipcRenderer.invoke("teleprompter:get-platform-info") as Promise<{
+			captureExclusionSupported: boolean;
+		}>;
+	},
+	onTeleprompterRecordingState: (callback: (recording: boolean) => void) => {
+		const listener = (_event: Electron.IpcRendererEvent, recording: boolean) =>
+			callback(recording);
+		ipcRenderer.on("teleprompter:recording-state", listener);
+		return () => ipcRenderer.removeListener("teleprompter:recording-state", listener);
+	},
+	onTeleprompterVisibility: (callback: (open: boolean) => void) => {
+		const listener = (_event: Electron.IpcRendererEvent, open: boolean) => callback(open);
+		ipcRenderer.on("teleprompter:visibility", listener);
+		return () => ipcRenderer.removeListener("teleprompter:visibility", listener);
+	},
 	getHudOverlayMousePassthroughSupported: () => {
 		return ipcRenderer.invoke("get-hud-overlay-mouse-passthrough-supported");
 	},
