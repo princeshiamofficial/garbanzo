@@ -5,6 +5,32 @@ import { Switch } from "@/components/ui/switch";
 import { supportsHudCaptureProtection } from "@/lib/hudCaptureProtection";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/toast";
+import {
+	getLiteModePreference,
+	getRendererHardwareHints,
+	isLiteModeActive,
+	isLowSpecHardware,
+	setLiteModePreference,
+} from "@/lib/liteMode";
+
+function describeLiteMode(active: boolean): string {
+	const { memoryGb, cores } = getRendererHardwareHints();
+	const specs = [
+		typeof memoryGb === "number" ? `~${memoryGb} GB RAM` : null,
+		typeof cores === "number" ? `${cores} CPU threads` : null,
+	]
+		.filter(Boolean)
+		.join(", ");
+	const detected = specs ? ` Detected: ${specs}.` : "";
+	if (getLiteModePreference() === "auto") {
+		return active
+			? `On automatically for this low-spec PC.${detected} Records 1080p/30fps, lighter preview, low-memory export.`
+			: `Off. Turn on for 2–4 GB RAM PCs: 1080p/30fps recording, lighter preview, low-memory export.${detected}`;
+	}
+	return active
+		? `On. 1080p/30fps recording, lighter preview, low-memory export.${detected}`
+		: `Off. Full quality (up to 4K/60fps).${detected}`;
+}
 export const DashboardSettingsContext = createContext<ReactNode>(null);
 export function DashboardSettings({ onImportFile }: { onImportFile: () => Promise<void> }) {
 	const settingsContent = useContext(DashboardSettingsContext);
@@ -13,6 +39,7 @@ export function DashboardSettings({ onImportFile }: { onImportFile: () => Promis
 	const [hideHud, setHideHud] = useState(true);
 	const [captureSupported, setCaptureSupported] = useState(false);
 	const [busy, setBusy] = useState(false);
+	const [liteMode, setLiteMode] = useState(isLiteModeActive);
 	const run = async (action: () => Promise<void>) => {
 		setBusy(true);
 		try {
@@ -61,6 +88,27 @@ export function DashboardSettings({ onImportFile }: { onImportFile: () => Promis
 					</SettingsRow>
 				</SettingsCategory>
 				<SettingsCategory category="recording">
+					<SettingsRow
+						title="Ultra Lite mode (low-spec PCs)"
+						description={describeLiteMode(liteMode)}
+					>
+						<Switch
+							aria-label="Ultra Lite mode"
+							checked={liteMode}
+							onCheckedChange={(enabled) => {
+								// Choosing the auto-detected value goes back to "auto" so the
+								// app keeps adapting if the PC is upgraded later.
+								const autoValue = isLowSpecHardware(getRendererHardwareHints());
+								setLiteModePreference(
+									enabled === autoValue ? "auto" : enabled ? "on" : "off",
+								);
+								setLiteMode(enabled);
+								toast.success(
+									"Ultra Lite mode updated. Restart Recordly to apply it everywhere.",
+								);
+							}}
+						/>
+					</SettingsRow>
 					<SettingsRow
 						title="Recordings folder"
 						description={

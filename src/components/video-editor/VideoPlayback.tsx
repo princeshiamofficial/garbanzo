@@ -14,6 +14,7 @@ import {
 import { getAssetPath, getRenderableAssetUrl, getRenderableVideoUrl } from "@/lib/assetPath";
 import { getWebcamShadowFilter } from "@/lib/exporter/shadowProfile";
 import { getSquircleSvgPath } from "@/lib/geometry/squircle";
+import { getPreviewProfile } from "@/lib/liteMode";
 import {
 	clampMediaTimeToDuration,
 	enablePitchPreservingPlayback,
@@ -139,6 +140,9 @@ import {
 	getWebcamOverlayPosition,
 	scaleWebcamOverlayPixels,
 } from "./webcamOverlay";
+
+// Preview quality for this editor session (Lite mode lowers fps, resolution and effects).
+const PREVIEW_PROFILE = getPreviewProfile();
 
 type PlaybackAnimationState = {
 	scale: number;
@@ -555,9 +559,12 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 								width: container.clientWidth,
 								height: container.clientHeight,
 								backgroundAlpha: 0,
-								antialias: true,
+								antialias: PREVIEW_PROFILE.antialias,
 								failIfMajorPerformanceCaveat: false,
-								resolution: window.devicePixelRatio || 1,
+								resolution: Math.min(
+									window.devicePixelRatio || 1,
+									PREVIEW_PROFILE.maxResolution,
+								),
 								autoDensity: true,
 								preference: backend,
 								autoStart: true,
@@ -1355,7 +1362,9 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 			}
 
 			videoEffectsContainer.filters =
-				(zoomMotionBlurRef.current ?? 0) > 0 ? [motionBlurFilter, zoomBlurFilter] : null;
+				PREVIEW_PROFILE.motionBlur && (zoomMotionBlurRef.current ?? 0) > 0
+					? [motionBlurFilter, zoomBlurFilter]
+					: null;
 			motionBlurFilter.velocity = { x: 0, y: 0 };
 			motionBlurFilter.kernelSize = 5;
 			motionBlurFilter.offset = 0;
@@ -1484,7 +1493,9 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 
 			motionBlurStateRef.current = createMotionBlurState();
 			videoEffectsContainer.filters =
-				zoomMotionBlur > 0 ? [motionBlurFilter, zoomBlurFilter] : null;
+				PREVIEW_PROFILE.motionBlur && zoomMotionBlur > 0
+					? [motionBlurFilter, zoomBlurFilter]
+					: null;
 		}, [zoomMotionBlur, requestPausedFrameRefresh]);
 
 		useEffect(() => {
@@ -1748,7 +1759,7 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 
 				app = await initializePixiRenderer(container);
 
-				app.ticker.maxFPS = 60;
+				app.ticker.maxFPS = PREVIEW_PROFILE.maxFps;
 
 				if (!mounted) {
 					destroyPixiApplication(app, "unmounted preview renderer");
@@ -1769,10 +1780,10 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 				videoEffectsContainerRef.current = videoEffectsContainer;
 				zoomBlurFilterRef.current = new ZoomBlurFilter({ strength: 0, maxKernelSize: 13 });
 				motionBlurFilterRef.current = new MotionBlurFilter([0, 0], 5, 0);
-				videoEffectsContainer.filters = [
-					motionBlurFilterRef.current,
-					zoomBlurFilterRef.current,
-				];
+				// Lite mode skips the blur filters in the preview; export still applies them.
+				videoEffectsContainer.filters = PREVIEW_PROFILE.motionBlur
+					? [motionBlurFilterRef.current, zoomBlurFilterRef.current]
+					: null;
 				cameraContainer.addChild(videoEffectsContainer);
 				syncPreviewMotionBlurQuality();
 

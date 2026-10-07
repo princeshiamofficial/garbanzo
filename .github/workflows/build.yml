@@ -53,6 +53,8 @@ jobs:
         run: npm run checksums:release -- SHA256SUMS-windows.txt
 
       - name: Attest Windows artifacts
+        # Attestation needs a public repo or a paid plan; do not block the build on it.
+        continue-on-error: true
         uses: actions/attest@v4
         with:
           subject-checksums: release/SHA256SUMS-windows.txt
@@ -124,6 +126,8 @@ jobs:
         run: npm run checksums:release -- SHA256SUMS-macos-${{ matrix.arch }}.txt
 
       - name: Attest macOS artifacts
+        # Attestation needs a public repo or a paid plan; do not block the build on it.
+        continue-on-error: true
         uses: actions/attest@v4
         with:
           subject-checksums: release/SHA256SUMS-macos-${{ matrix.arch }}.txt
@@ -187,6 +191,8 @@ jobs:
         run: npm run checksums:release -- SHA256SUMS-linux.txt
 
       - name: Attest Linux artifacts
+        # Attestation needs a public repo or a paid plan; do not block the build on it.
+        continue-on-error: true
         uses: actions/attest@v4
         with:
           subject-checksums: release/SHA256SUMS-linux.txt

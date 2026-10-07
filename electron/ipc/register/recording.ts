@@ -1,4 +1,5 @@
 import type { ChildProcessWithoutNullStreams } from "node:child_process";
+import { getMainRecordingProfile } from "../../liteModeMain";
 import { execFile, spawn } from "node:child_process";
 import fs from "node:fs/promises";
 import path from "node:path";
@@ -467,7 +468,7 @@ export function registerRecordingHandlers(
 
 					const config: Record<string, unknown> = {
 						outputPath: tempVideoPath,
-						fps: 60,
+						fps: getMainRecordingProfile().frameRate,
 					};
 
 					if (captureTarget.kind === "invalid-window") {
@@ -729,7 +730,7 @@ export function registerRecordingHandlers(
 					? path.join(recordingsDir, `recording-${timestamp}.mic.m4a`)
 					: null;
 				const config: Record<string, unknown> = {
-					fps: 60,
+					fps: getMainRecordingProfile().frameRate,
 					outputPath,
 					capturesSystemAudio,
 					capturesMicrophone,

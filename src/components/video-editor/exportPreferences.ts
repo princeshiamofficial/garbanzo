@@ -9,6 +9,7 @@ import type {
 	GifSizePreset,
 } from "@/lib/exporter";
 import { isValidMp4FrameRate } from "@/lib/exporter/types";
+import { isLiteModeActive } from "@/lib/liteMode";
 
 export interface ExportPreferences {
 	exportEncodingMode: ExportEncodingMode;
@@ -52,7 +53,10 @@ export function normalizeExportMp4FrameRate(value: unknown): ExportMp4FrameRate 
 
 export function normalizeExportPreferences(raw: Partial<ExportPreferences>): ExportPreferences {
 	return {
-		exportEncodingMode: normalizeExportEncodingMode(raw.exportEncodingMode),
+		exportEncodingMode:
+			raw.exportEncodingMode === undefined && isLiteModeActive()
+				? "fast"
+				: normalizeExportEncodingMode(raw.exportEncodingMode),
 		exportBackendPreference: normalizeExportBackendPreference(raw.exportBackendPreference),
 		exportPipelineModel: normalizeExportPipelineModel(raw.exportPipelineModel),
 		exportQuality:
@@ -61,7 +65,9 @@ export function normalizeExportPreferences(raw: Partial<ExportPreferences>): Exp
 			raw.exportQuality === "high" ||
 			raw.exportQuality === "source"
 				? raw.exportQuality
-				: "source",
+				: isLiteModeActive()
+					? "good"
+					: "source",
 		mp4FrameRate: normalizeExportMp4FrameRate(raw.mp4FrameRate),
 		exportFormat: raw.exportFormat === "gif" ? "gif" : "mp4",
 		gifFrameRate:

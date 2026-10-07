@@ -1,10 +1,12 @@
 import { WebDemuxer } from "web-demuxer";
+import { isLiteModeActive, LITE_EXPORT_QUEUE } from "@/lib/liteMode";
 import { getEffectiveVideoStreamDurationSeconds } from "@/lib/mediaTiming";
 import { createFallbackDemuxerSource, resolveMediaResourceUrl } from "./localMediaSource";
 import { getDecodedFrameTimelineOffsetUs } from "./streamingDecoder";
 
-const DEFAULT_MAX_DECODE_QUEUE = 12;
-const DEFAULT_MAX_PENDING_FRAMES = 32;
+// Lite mode keeps far fewer decoded frames in memory (each 1080p frame is ~8 MB).
+const DEFAULT_MAX_DECODE_QUEUE = isLiteModeActive() ? LITE_EXPORT_QUEUE.maxDecodeQueue : 12;
+const DEFAULT_MAX_PENDING_FRAMES = isLiteModeActive() ? LITE_EXPORT_QUEUE.maxPendingFrames : 32;
 
 export interface ForwardFrameSourceMetadata {
 	width: number;

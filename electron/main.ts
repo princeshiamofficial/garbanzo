@@ -21,6 +21,8 @@ import { RECORDINGS_DIR } from "./appPaths";
 import { createAuthCallbackController } from "./authCallback";
 import { showCursor } from "./cursorHider";
 import { getGpuSwitches } from "./gpuSwitches";
+import { isLiteModeActiveInMain } from "./liteModeMain";
+import { LITE_RENDERER_HEAP_MB } from "../src/lib/liteMode";
 import {
 	cleanupAllExportStreams,
 	cleanupNativeVideoExportSessions,
@@ -64,6 +66,7 @@ import {
 
 const electronMainDir = path.dirname(fileURLToPath(import.meta.url));
 const IS_SMOKE_EXPORT = process.env.RECORDLY_SMOKE_EXPORT === "1";
+const LITE_MODE_AT_STARTUP = isLiteModeActiveInMain();
 
 function ignoreBrokenConsolePipe(stream: NodeJS.WritableStream | undefined) {
 	stream?.on("error", (error: NodeJS.ErrnoException) => {
@@ -97,9 +100,26 @@ function configureGpuAccelerationSwitches() {
 	if (useGl) {
 		app.commandLine.appendSwitch("use-gl", useGl);
 	}
-	if (disableFeatures && disableFeatures.length > 0) {
-		app.commandLine.appendSwitch("disable-features", disableFeatures.join(","));
+	const featuresToDisable = [...(disableFeatures ?? [])];
+	if (LITE_MODE_AT_STARTUP) {
+		// Background features Recordly does not need; each one costs memory on
+		// 2–4 GB machines.
+		featuresToDisable.push("CalculateNativeWinOcclusion", "SpareRendererForSitePerProcess");
 	}
+	if (featuresToDisable.length > 0) {
+		app.commandLine.appendSwitch("disable-features", featuresToDisable.join(","));
+	}
+}
+
+function configureLiteModeSwitches() {
+	if (!LITE_MODE_AT_STARTUP) {
+		return;
+	}
+	// Cap each renderer's JS heap so the editor gives memory back to Windows
+	// instead of pushing a 2 GB machine into swap.
+	app.commandLine.appendSwitch("js-flags", `--max-old-space-size=${LITE_RENDERER_HEAP_MB}`);
+	app.commandLine.appendSwitch("disable-smooth-scrolling");
+	console.info("[lite-mode] Ultra Lite mode is active for this session.");
 }
 
 async function logSmokeExportGpuDiagnostics() {
@@ -116,6 +136,7 @@ async function logSmokeExportGpuDiagnostics() {
 }
 
 configureGpuAccelerationSwitches();
+configureLiteModeSwitches();
 
 async function ensureRecordingsDir() {
 	try {

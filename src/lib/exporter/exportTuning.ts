@@ -1,3 +1,4 @@
+import { isLiteModeActive, LITE_EXPORT_QUEUE } from "../liteMode";
 import type { ExportEncodeBackend, ExportEncodingMode } from "./types";
 
 const DEFAULT_ENCODING_MODE: ExportEncodingMode = "balanced";
@@ -80,6 +81,8 @@ interface ExportBackpressureProfileOptions {
 	frameRate: number;
 	encodingMode?: ExportEncodingMode;
 	hardwareConcurrency?: number;
+	/** Hold as few frames in memory as possible (Lite mode). Defaults to the Lite mode setting. */
+	lowMemory?: boolean;
 }
 
 export function getPreferredWebCodecsLatencyModes(
@@ -91,7 +94,11 @@ export function getPreferredWebCodecsLatencyModes(
 export function getWebCodecsEncodeQueueLimit(
 	frameRate: number,
 	encodingMode?: ExportEncodingMode,
+	lowMemory: boolean = isLiteModeActive(),
 ): number {
+	if (lowMemory) {
+		return LITE_EXPORT_QUEUE.maxEncodeQueue;
+	}
 	const resolvedEncodingMode = normalizeEncodingMode(encodingMode);
 	const targetLimit = Math.round(frameRate * TARGET_QUEUE_SECONDS[resolvedEncodingMode]);
 
@@ -113,6 +120,14 @@ export function getWebCodecsKeyFrameInterval(
 export function getExportBackpressureProfile(
 	options: ExportBackpressureProfileOptions,
 ): ExportBackpressureProfile {
+	const lowMemory = options.lowMemory ?? isLiteModeActive();
+	if (lowMemory) {
+		return {
+			name: `${options.encodeBackend === "ffmpeg" ? "breeze" : "webcodecs"}-lite`,
+			...LITE_EXPORT_QUEUE,
+		};
+	}
+
 	const hardwareConcurrency = getEffectiveHardwareConcurrency(options.hardwareConcurrency);
 	const relativePixelRate = getRelativePixelRate(
 		options.width,
@@ -123,7 +138,11 @@ export function getExportBackpressureProfile(
 	const isHighCoreSystem = hardwareConcurrency >= 8;
 	const isHeavyWorkload = relativePixelRate >= 1.5;
 	const isExtremeWorkload = relativePixelRate >= 3;
-	const maxEncodeQueue = getWebCodecsEncodeQueueLimit(options.frameRate, options.encodingMode);
+	const maxEncodeQueue = getWebCodecsEncodeQueueLimit(
+		options.frameRate,
+		options.encodingMode,
+		false,
+	);
 
 	if (options.encodeBackend === "ffmpeg") {
 		if (isLowCoreSystem || isExtremeWorkload) {
